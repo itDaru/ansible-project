@@ -1,0 +1,46 @@
+---
+- name: 1. Prueba de Conectividad de Red y DNS
+  hosts: all # O el grupo de hosts que quieres probar, ej: 'servers'
+  gather_facts: false # No necesitamos facts para esta prueba simple
+
+  tasks:
+    - name: Tarea 1.1: Ping de conectividad básica (Módulo 'ping')
+      ansible.builtin.ping:
+      register: ping_result
+
+    - name: Tarea 1.2: Mostrar resultado del Ping (Debe ser 'pong')
+      ansible.builtin.debug:
+        msg: "Resultado de Ping básico: {{ ping_result.ping }}"
+
+    - name: Tarea 2.1: Probar conectividad al IP 1.1.1.1 (Conectividad externa)
+      ansible.builtin.command: ping -c 3 1.1.1.1
+      register: ping_ip_result
+      changed_when: false # No cambia el estado del sistema
+
+    - name: Tarea 2.2: Mostrar resultado de Ping a 1.1.1.1
+      ansible.builtin.debug:
+        msg: "Resultado de Ping a 1.1.1.1:\n{{ ping_ip_result.stdout }}"
+
+    - name: Tarea 3.1: Probar Resolución de DNS a google.com (nslookup)
+      ansible.builtin.command: nslookup google.com
+      register: nslookup_result
+      changed_when: false
+
+    - name: Tarea 3.2: Mostrar el resultado de DNS Lookup
+      ansible.builtin.debug:
+        msg: "Resultado de nslookup para google.com:\n{{ nslookup_result.stdout }}"
+
+    # Opcional: Si quieres un test de conectividad más explícito a google.com
+    - name: Tarea 4.1: Probar conectividad al FQDN google.com
+      ansible.builtin.uri:
+        url: https://google.com
+        method: GET
+        validate_certs: false
+      register: uri_result
+      ignore_errors: true
+      changed_when: false
+
+    - name: Tarea 4.2: Mostrar el estado HTTP para google.com
+      ansible.builtin.debug:
+        msg: "El FQDN google.com respondió con código: {{ uri_result.status }}"
+      when: uri_result.status is defined
