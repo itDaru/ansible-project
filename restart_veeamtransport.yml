@@ -1,0 +1,20 @@
+---
+- name: Restart Veeam Transport Service with a 3-second delay
+  hosts: all
+  become: yes
+  tasks:
+    - name: Ensure the service is stopped
+      ansible.builtin.service:
+        name: veeamtransport.service
+        state: stopped
+
+    - name: Wait for 3 seconds before starting the service
+      ansible.builtin.pause:
+        seconds: 3
+        prompt: "Pausing for 3 seconds to allow graceful shutdown..."
+
+    - name: Ensure the service is started
+      ansible.builtin.service:
+        name: veeamtransport.service
+        state: started
+        enabled: yes # Optional: ensures the service starts on boot
