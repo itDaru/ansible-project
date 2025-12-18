@@ -1,0 +1,120 @@
+---
+- name: Update Linux Systems (All Distributions)
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Display distribution being updated
+      ansible.builtin.debug:
+        msg: "Updating {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    - name: Update apt cache (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: Upgrade all packages (Debian/Ubuntu)
+      ansible.builtin.apt:
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
+      when: ansible_os_family == "Debian"
+      register: apt_upgrade_result
+
+    - name: Update all packages (RHEL/CentOS/Rocky/AlmaLinux)
+      ansible.builtin.yum:
+        name: "*"
+        state: latest
+        update_cache: yes
+      when: ansible_os_family == "RedHat" and ansible_distribution != "Fedora"
+      register: yum_upgrade_result
+
+    - name: Update all packages (Fedora)
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+        update_cache: yes
+      when: ansible_distribution == "Fedora"
+      register: dnf_upgrade_result
+
+    - name: Update all packages (SUSE/openSUSE)
+      ansible.builtin.zypper:
+        name: "*"
+        state: latest
+        update_cache: yes
+      when: ansible_os_family == "Suse"
+      register: zypper_upgrade_result
+
+    - name: Update all packages (Arch Linux)
+      community.general.pacman:
+        update_cache: yes
+        upgrade: yes
+      when: ansible_os_family == "Archlinux"
+      register: pacman_upgrade_result
+
+    - name: Update package cache (Alpine Linux)
+      community.general.apk:
+        update_cache: yes
+      when: ansible_os_family == "Alpine"
+
+    - name: Upgrade all packages (Alpine Linux)
+      community.general.apk:
+        upgrade: yes
+      when: ansible_os_family == "Alpine"
+      register: apk_upgrade_result
+
+    - name: Display update summary (Debian/Ubuntu)
+      ansible.builtin.debug:
+        msg: "APT upgrade completed. Changed: {{ apt_upgrade_result.changed }}"
+      when: ansible_os_family == "Debian"
+
+    - name: Display update summary (RHEL/CentOS/Rocky/AlmaLinux)
+      ansible.builtin.debug:
+        msg: "YUM upgrade completed. Changed: {{ yum_upgrade_result.changed }}"
+      when: ansible_os_family == "RedHat" and ansible_distribution != "Fedora"
+
+    - name: Display update summary (Fedora)
+      ansible.builtin.debug:
+        msg: "DNF upgrade completed. Changed: {{ dnf_upgrade_result.changed }}"
+      when: ansible_distribution == "Fedora"
+
+    - name: Display update summary (SUSE/openSUSE)
+      ansible.builtin.debug:
+        msg: "Zypper upgrade completed. Changed: {{ zypper_upgrade_result.changed }}"
+      when: ansible_os_family == "Suse"
+
+    - name: Display update summary (Arch Linux)
+      ansible.builtin.debug:
+        msg: "Pacman upgrade completed. Changed: {{ pacman_upgrade_result.changed }}"
+      when: ansible_os_family == "Archlinux"
+
+    - name: Display update summary (Alpine Linux)
+      ansible.builtin.debug:
+        msg: "APK upgrade completed. Changed: {{ apk_upgrade_result.changed }}"
+      when: ansible_os_family == "Alpine"
+
+    - name: Check if reboot is required (Debian/Ubuntu)
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required_file
+      when: ansible_os_family == "Debian"
+
+    - name: Notify if reboot is required (Debian/Ubuntu)
+      ansible.builtin.debug:
+        msg: "REBOOT REQUIRED: System needs to be rebooted to complete updates"
+      when: ansible_os_family == "Debian" and reboot_required_file.stat.exists
+
+    - name: Check if reboot is required (RHEL-based)
+      ansible.builtin.shell: needs-restarting -r
+      register: reboot_required_rhel
+      failed_when: false
+      changed_when: false
+      when: ansible_os_family == "RedHat"
+
+    - name: Notify if reboot is required (RHEL-based)
+      ansible.builtin.debug:
+        msg: "REBOOT REQUIRED: System needs to be rebooted to complete updates"
+      when: ansible_os_family == "RedHat" and reboot_required_rhel.rc == 1
+
