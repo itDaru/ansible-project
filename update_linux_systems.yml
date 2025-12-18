@@ -3,6 +3,9 @@
   hosts: all
   become: yes
   gather_facts: yes
+  collections:
+    - ansible.builtin
+    - community.general
 
   tasks:
     - name: Display distribution being updated
@@ -40,7 +43,7 @@
       register: dnf_upgrade_result
 
     - name: Update all packages (SUSE/openSUSE)
-      ansible.builtin.zypper:
+      community.general.zypper:
         name: "*"
         state: latest
         update_cache: yes
