@@ -3,9 +3,6 @@
   hosts: all
   become: yes
   gather_facts: yes
-  collections:
-    - ansible.builtin
-    - community.general
 
   tasks:
     - name: Display distribution being updated
@@ -42,31 +39,37 @@
       when: ansible_distribution == "Fedora"
       register: dnf_upgrade_result
 
+    - name: Refresh repositories (SUSE/openSUSE)
+      ansible.builtin.command: zypper --non-interactive refresh
+      when: ansible_os_family == "Suse"
+      changed_when: false
+
     - name: Update all packages (SUSE/openSUSE)
-      community.general.zypper:
-        name: "*"
-        state: latest
-        update_cache: yes
+      ansible.builtin.command: zypper --non-interactive update
       when: ansible_os_family == "Suse"
       register: zypper_upgrade_result
+      changed_when: "'Nothing to do.' not in (zypper_upgrade_result.stdout | default(''))"
 
     - name: Update all packages (Arch Linux)
-      community.general.pacman:
-        update_cache: yes
-        upgrade: yes
+      ansible.builtin.command: pacman -Syu --noconfirm
       when: ansible_os_family == "Archlinux"
       register: pacman_upgrade_result
+      changed_when: "'there is nothing to do' not in ((pacman_upgrade_result.stdout | default('')) ~ (pacman_upgrade_result.stderr | default('')) | lower)"
 
     - name: Update package cache (Alpine Linux)
-      community.general.apk:
-        update_cache: yes
+      ansible.builtin.command: apk update
       when: ansible_os_family == "Alpine"
+      changed_when: false
 
     - name: Upgrade all packages (Alpine Linux)
-      community.general.apk:
-        upgrade: yes
+      ansible.builtin.command: apk upgrade
       when: ansible_os_family == "Alpine"
       register: apk_upgrade_result
+      changed_when: >-
+        (
+          'Upgrading' in ((apk_upgrade_result.stdout | default('')) ~ (apk_upgrade_result.stderr | default('')))
+          or 'Installing' in ((apk_upgrade_result.stdout | default('')) ~ (apk_upgrade_result.stderr | default('')))
+        )
 
     - name: Display update summary (Debian/Ubuntu)
       ansible.builtin.debug:
