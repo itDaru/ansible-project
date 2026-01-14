@@ -2,6 +2,9 @@
 - name: Update Linux Systems (All Distributions)
   hosts: all
   become: yes
+  become_user: root
+  vars:
+    use_sudo_password: true
   gather_facts: yes
 
   tasks:
