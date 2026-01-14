@@ -1,0 +1,8 @@
+---
+- name: Check local connectivity
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Ping the local host
+      ansible.builtin.ping:
