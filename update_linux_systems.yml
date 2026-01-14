@@ -25,6 +25,8 @@
         autoclean: yes
       when: ansible_os_family == "Debian"
       register: apt_upgrade_result
+      environment:
+        DEBIAN_FRONTEND: noninteractive
 
     - name: Update all packages (RHEL/CentOS/Rocky/AlmaLinux)
       ansible.builtin.yum:
